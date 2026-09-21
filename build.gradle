@@ -19,7 +19,6 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: "net.serenity-bdd.serenity-gradle-plugin"
 apply plugin: 'application'
-
 // ========================================================
 // CONFIGURACION DE JAVA
 // ========================================================
@@ -28,6 +27,11 @@ apply plugin: 'application'
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
+    sourceCompatibility = 13
+    targetCompatibility = 13
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(13)
+    }
 }
 ext {
     slf4jVersion = '1.7.7'
@@ -35,6 +39,7 @@ ext {
     junitVersion = '4.13.2'
     logbackVersion = '1.3.10'
     LombokVersion = '1.18.34'
+
 }
 
 dependencies {
@@ -47,6 +52,7 @@ dependencies {
             "net.serenity-bdd:serenity-screenplay-webdriver:${serenityCoreVersion}",
             "junit:junit:${junitVersion}"
     implementation "net.serenity-bdd:serenity-ensure:${serenityCoreVersion}"
+    //implementation 'org.seleniumhq.selenium:selenium-java:4.27.0'
     testImplementation 'io.github.bonigarcia:webdrivermanager:5.6.2'
     compileOnly "org.projectlombok:lombok:${LombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${LombokVersion}"
@@ -57,13 +63,16 @@ dependencies {
     testImplementation 'org.slf4j:slf4j-simple:2.0.5'
 }
 test {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(13)
+    }
     testLogging.showStandardStreams = true
 
     // CONFIGURACION PARA EJECUCION PARALELA
     // maxParallelForks: numero de JVM paralelas (tests que se ejecutan simultaneamente)
     // Cada fork = 1 navegador Chrome ejecutandose en paralelo
     // NOTA: Este valor se lee desde gradle.properties (edita gradle.properties para cambiar)
-    maxParallelForks = (project.hasProperty('maxParallelForks') ? project.maxParallelForks.toInteger() : 2)
+    maxParallelForks = (project.hasProperty('maxParallelForks') ? project.maxParallelForks.toInteger() : 1)
 
     // Memoria por fork (cada navegador Chrome necesita ~1GB)
     maxHeapSize = '2048m'
@@ -78,7 +87,7 @@ test {
 
     // Pasar propiedades del sistema EXCEPTO java.home y classpath del daemon
     // (pasar java.home causaria que los workers busquen currency.data en el JDK del daemon)
-    def excludedSysProps = ['java.home', 'java.class.path', 'sun.boot.class.path', 'java.ext.dirs'] as Set
+    def excludedSysProps = ['java.home', 'java.class.path', 'sun.boot.class.path', 'java.ext.dirs', 'java.endorsed.dirs'] as Set
     System.getProperties().each { k, v ->
         if (!(k as String in excludedSysProps)) {
             systemProperty k as String, v as String
